@@ -1,4 +1,4 @@
-# DevilDaggers-UI
+# DevilDaggers-DLL
 
 **Outdated** DevilDaggers reverse engineering project (purpose is not cheating).
 Working on DD v3.0
