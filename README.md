@@ -1,7 +1,7 @@
 # DevilDaggers-DLL
 
 **Outdated** DevilDaggers reverse engineering project (purpose is not cheating).
-Working on DD v3.0
+Working on DD v1
 - injectable DLL
 - uses IMGUI
 - FPS indicator
