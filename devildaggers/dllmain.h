@@ -1,3 +1,3 @@
 #pragma once
 
-void OpenGL_loop();
+void render();

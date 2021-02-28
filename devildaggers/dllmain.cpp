@@ -1,5 +1,7 @@
 #pragma once
 
+//IMPORTANT: if OpenGL32.Lib is missing get it from C:\Program Files\Microsoft SDKs\Windows\v6.1\Lib\x64
+
 #include <windows.h>
 #include <Psapi.h>
 #include <winternl.h>
@@ -11,37 +13,20 @@
 #include <stdio.h>
 
 #include "imgui.h"
-#include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_win32.h"
 
-// About Desktop OpenGL function loaders:
-//  Modern desktop OpenGL doesn't have a standard portable header file to load OpenGL function pointers.
-//  Helper libraries are often used for this purpose! Here we are supporting a few common ones (gl3w, glew, glad).
-//  You may use another loader/header of your choice (glext, glLoadGen, etc.), or chose to manually implement your own.
-#if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
-#include <GL/gl3w.h>    // Initialize with gl3wInit()
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLEW)
 #include <GL/glew.h>    // Initialize with glewInit()
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLAD)
-#include <glad/glad.h>  // Initialize with gladLoadGL()
-#elif defined(IMGUI_IMPL_OPENGL_LOADER_GLBINDING)
-#define GLFW_INCLUDE_NONE         // GLFW including OpenGL headers causes ambiguity or multiple definition errors.
-#include <glbinding/glbinding.h>  // Initialize with glbinding::initialize()
-#include <glbinding/gl/gl.h>
-using namespace gl;
-#endif
 
 // Include glfw3.h after our OpenGL definitions
 #include <GLFW/glfw3.h>
-#include "dllmain.h"
 
-#include "glText.h"
-#include "glDraw.h"
+#include "MinHook.h"
 
-//#include "Memory.h"
 #include "Vector3.h"
+#include "GameModel.cpp"
 
+#include "dllmain.h"
 
 // [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
 // To link with VS2010-era libraries, VS2015+ requires linking with legacy_stdio_definitions.lib, which we do using this pragma.
@@ -50,65 +35,23 @@ using namespace gl;
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-static void glfw_error_callback(int error, const char* description)
-{
-	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
-}
+HWND hwnd_game;
+GLFWwindow* glfwWindow;
 
-int FindExtraWindowHeight(HWND h)
-{
-	RECT w, c;
-	GetWindowRect(h, &w);
-	GetClientRect(h, &c);
-	return (w.bottom - w.top) - (c.bottom - c.top);
-}
+bool glewFailedToInitialize = false;
+bool imguiInitialized = false;
+bool imguiInitializedPos = false;
+bool imguiInitDecollapsedHeaders = false;
+bool contextCreated = false;
+HGLRC thisContext;
 
-//#include "detours.h" //detours 3.0
-//#pragma comment(lib, "detours.lib")
+CPlayer *player;
+int cache_gems = 0;
+float cache_timer = 0;
+int cache_enemiesCounter = 0;
 
-class CPlayer {
-public:
-	char pad_0000[96]; //0x0000
-	char sPlayerName_idk[4]; //0x0060
-	char pad_0064[92]; //0x0064
-	char sVersion_idk[4]; //0x00C0
-	char pad_00C4[24]; //0x00C4
-	char sGameMode2_blankSometimes[4]; //0x00DC
-	char pad_00E0[108]; //0x00E0
-	int32_t iFOV; //0x014C
-	char pad_0150[64]; //0x0150
-	float fTimer; //0x0190
-	char pad_0194[16]; //0x0194
-	bool bAlive; //0x01A4
-	char pad_01A5[27]; //0x01A5
-	int32_t iGems; //0x01C0
-	char pad_01C4[56]; //0x01C4
-	int32_t iEnemiesCounter; //0x01FC
-	char pad_0200[36]; //0x0200
-	char sGameMode[5]; //0x0224
-	char pad_0229[308]; //0x0229
-	int8_t N000002E8; //0x035D
-	bool bReplayMode; //0x035E
-	char pad_035F[230]; //0x035F
-	char cPlayerName[8]; //0x0445
-	char pad_044D[264]; //0x044D
-	Vector3 vCamera; //0x0555
-	char pad_0561[748]; //0x0561
-}; //Size: 0x084D
-
-
-/*public:
-	char pad_0000[400]; //0x0000
-	float m_unk_timer; //0x0190
-	char pad_0194[12]; //0x0194
-	float m_score; //0x01A0
-	bool m_alive; //0x01A4
-	char pad_01A8[24]; //0x01A8
-	uint32_t m_gems; //0x01C0 //not resetting on death
-	char pad_01C4[1200]; //0x01C4
-}; //Size: 0x0674
-*/
-
+char textInputBuffer_level[32] = "";
+bool changeLevel = false;
 
 void write(void *addr, int value, const int bytes)
 {
@@ -123,80 +66,66 @@ void NOP( void *addr, const int bytes )
 	write(addr, 0x90, bytes);
 }
 
-
-HWND hwnd;
-GLFWwindow* window;
-
-bool imguiInitialized = false;
-bool imguiInitializedPos = false;
-bool imguiInitDecollapsedHeaders = false;
-//GL::Font glFont;
-
-CPlayer *player;
-int cache_gems = 0;
-float cache_timer = 0;
-int cache_enemiesCounter = 0;
-
-char textInputBuffer_level[32] = "";
-bool changeLevel = false;
-bool triggerFreecam = false;
-bool bFreecam = false;
-
-//dd.exe+1A075 - 8B 41 28 - mov eax,[ecx+28]
-int originalFreecam[] = { 0x8B, 0x41, 0x28 };
-
-void OpenGL_loop()
+static void glfw_error_callback(int error, const char* description)
 {
-	/*HDC currentHDC = wglGetCurrentDC();
-	if (!glFont.bBuilt || currentHDC != glFont.hdc)
-		glFont.Build(50);*/
-	//GL::SetupOrtho();
-	//GL::DrawFilledRect(0, 0, 500, 500, rgb::red);
-	//GL::Text(currentHDC, 50, 50, 255, 255, 255, GLUT_BITMAP_HELVETICA_18, "TESTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
-	//glFont.Print(10, 50, rgb::red, "TESTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+	if (error == 65537)
+	{
+		if(!glewFailedToInitialize)
+			std::cout << "Glfw Error " << error << ": " << description << "\n";
+		glewFailedToInitialize = true;
+	}
+	else
+	{
+		std::cout << "Glfw Error " << error << ": " << description << "\n";
+	}
+}
 
-	//wireframe
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+int FindExtraWindowHeight(HWND h)
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	RECT w, c;
+	GetWindowRect(h, &w);
+	GetClientRect(h, &c);
+	return (w.bottom - w.top) - (c.bottom - c.top);
+}
 
-	hwnd = GetActiveWindow();
+void render(HDC hdc)
+{
+	//HGLRC oldContext = wglGetCurrentContext();
+	if (glewFailedToInitialize)
+		return;
 
-	//https://www.unknowncheats.me/forum/c-and-c-/291229-imgui-opengl3-menu-help.html
 	if (!imguiInitialized) 
 	{
-		// GL 3.0 + GLSL 130
-		const char* glsl_version = "#version 130";
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-
-		glewInit();
-
-		RECT rect;
-		if (GetWindowRect(hwnd, &rect))
-		{
-			int width = rect.right - rect.left;
-			int height = rect.bottom - rect.top;
-			window = glfwCreateWindow(width, height, "ImGui", NULL, NULL);
-		}
-		glfwMakeContextCurrent(window);
-		glfwSwapInterval(1); // Enable vsync
-
+		std::cout << "ImGui Initializing..." << "\n";
 		glfwSetErrorCallback(glfw_error_callback);
+
+		//std::cout << "_GLFW_WNDCLASSNAME: " << _GLFW_WNDCLASSNAME << "\n";
+
+		std::cout << "ImGui calling glewInit()" << "\n";
+		//glewExperimental = GL_TRUE;
+		GLenum err_glew = glewInit();
+		if (err_glew != GLEW_OK)
+		{
+			std::cout << "glewInit() failed!" << glewGetErrorString(err_glew) << std::endl;
+			glewFailedToInitialize = true;
+			return;
+		}
+		
+		std::cout << "GLFW Version:" << glfwGetVersionString() << "\n";
 
 		IMGUI_CHECKVERSION();
 		ImGuiContext* context = ImGui::CreateContext();
 		ImGui::SetCurrentContext(context);
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-		//ImGui_ImplWin32_Init(hwnd);
+		ImGui_ImplWin32_Init(hwnd_game);
+		ImGui_ImplOpenGL3_Init();
 
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
-		ImGui_ImplOpenGL3_Init(glsl_version);
+		ImGui::StyleColorsDark();
 
 		io.DeltaTime = 1.0f / 60.0f;
-		//io.DisplaySize.x = 1920;
-		//io.DisplaySize.y = 1080;
+
 		//io.WantCaptureKeyboard(true);
 
 		//io.Fonts->AddFontDefault();
@@ -206,90 +135,109 @@ void OpenGL_loop()
 		int width, height, bytes_per_pixels;
 		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &bytes_per_pixels);
 
-		ImGui::StyleColorsDark();
-
-		ImGui_ImplOpenGL3_Init();
-
-		//ImGui_ImplGlfw_MouseButtonCallback(window, 0, 1, 0);
 		imguiInitialized = true;
-		std::cout << "ImGui Initialized..." << "\n";
+		std::cout << "ImGui Finished initialization" << "\n";
 	}
 
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-	glfwPollEvents();
+	//update display size based on game window (when user changes from fullscreen to window or if resizes window)
 	RECT rect;
-	if (GetWindowRect(hwnd, &rect))
+	if (GetWindowRect(hwnd_game, &rect))
 	{
 		int width = rect.right - rect.left;
 		int height = rect.bottom - rect.top;
 
 		io.DisplaySize.x = width;
 		io.DisplaySize.y = height;
-		//glfwGetFramebufferSize(window, &width, &height);
 	}
 
+	ImGui_ImplWin32_NewFrame();
 	ImGui_ImplOpenGL3_NewFrame();
-	//ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
-	ImGui::Begin("FuckTheDevil");
 
-	ImGui::SetWindowPos(ImVec2(0, 100), ImGuiCond_Once);
-	ImGui::SetWindowSize(ImVec2(0, 0), ImGuiCond_Once);
-	
-	//ImGui::CaptureMouseFromApp(true);
-	//ImGui::CaptureKeyboardFromApp(true);
+#pragma region RenderStuff
+	if (ImGui::Begin("FuckTheDevil"))
+	{
+		ImGui::SetWindowPos(ImVec2(0, 100), ImGuiCond_Once);
+		ImGui::SetWindowSize(ImVec2(200, 450), ImGuiCond_Once);
 
-	if (ImGui::CollapsingHeader("Stats"))
-	{
-		ImGui::Text("FPS: %f", io.Framerate);
-		ImGui::Text("Gems: %d", cache_gems);
-		ImGui::Text("Score: %f", cache_timer);
-		ImGui::Text("Enemies: %d", cache_enemiesCounter);
-	}
-	
-	if (ImGui::CollapsingHeader("Settings"))
-	{
-		ImGui::InputInt("FOV", &player->iFOV, 1);
-		if (ImGui::Button("Freecam"))
+		//ImGui::CaptureMouseFromApp(true);
+		//ImGui::CaptureKeyboardFromApp(true);
+
+		if (ImGui::CollapsingHeader("Stats"))
 		{
-			triggerFreecam = true;
+			ImGui::Text("FPS: %f", io.Framerate); //TODO: get it from the game not from IMGUI
+			ImGui::Text("Gems: %d", cache_gems);
+			ImGui::Text("Score: %f", cache_timer);
+			ImGui::Text("Enemies: %d", cache_enemiesCounter);
 		}
-		ImGui::Checkbox("Alive", &player->bAlive);
-		ImGui::InputText("Level", textInputBuffer_level, 20, ImGuiInputTextFlags_EnterReturnsTrue);
-		if (ImGui::Button("Cheat main menu"))
-			changeLevel = true;
-	}
 
-	if (!imguiInitDecollapsedHeaders)
+		if (ImGui::CollapsingHeader("Settings"))
+		{
+			ImGui::InputInt("FOV", &player->iFOV, 1);
+			ImGui::Checkbox("Alive", &player->bAlive);
+			ImGui::InputText("Level", textInputBuffer_level, 20, ImGuiInputTextFlags_EnterReturnsTrue);
+			if (ImGui::Button("Cheat main menu"))
+				changeLevel = true;
+		} 
+
+		if (!imguiInitDecollapsedHeaders)
+		{
+			imguiInitDecollapsedHeaders = true;
+			ImGui::GetStateStorage()->SetInt(ImGui::GetID("Stats"), 1);
+			ImGui::GetStateStorage()->SetInt(ImGui::GetID("Settings"), 1);
+		}
+	}
+	else
 	{
-		imguiInitDecollapsedHeaders = true;
-		ImGui::GetStateStorage()->SetInt(ImGui::GetID("Stats"), 1);
-		ImGui::GetStateStorage()->SetInt(ImGui::GetID("Settings"), 1);
+		std::cout << "ImGui error rendering stuff..." << "\n";
 	}
+	ImGui::End();
+#pragma endregion
 
-	ImGui::EndFrame();
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-
-	GL::RestoreGL();
 }
 
+//==========================================================================================================================
 
-GL::twglSwapBuffers owglSwapBuffers;
-BOOL __stdcall hwglSwapBuffers(HDC hDc)
+//Typedef the function prototype straight from MSDN
+typedef BOOL(__stdcall * wglSwapBuffers) (_In_ HDC  hdc);
+
+//Create instance of function
+wglSwapBuffers o_wglSwapBuffers;
+BOOL __stdcall trampoline_wglSwapBuffers(_In_ HDC  hdc)
 {
-	OpenGL_loop();
-	return owglSwapBuffers(hDc);
+	render(hdc);
+	return o_wglSwapBuffers(hdc); //return execution to original function
 }
 
-//https://guidedhacking.com/threads/opengl-swapbuffers-hook-template-source-code.11476/
-void hookOpenGL()
+DWORD WINAPI hookOpenGL()
 {
-	const char *asd = "wglSwapBuffers";
-	GL::Hook((char*)asd, (uintptr_t &)owglSwapBuffers, &hwglSwapBuffers);
+	HMODULE hMod = GetModuleHandle(L"opengl32.dll");
+	if (hMod)
+	{
+		std::cout << "Found OpenGL \n";
+
+		//use GetProcAddress to find address of wglSwapBuffers in opengl32.dll
+		void* ptr = GetProcAddress(hMod, "wglSwapBuffers");
+		MH_Initialize();
+		if (MH_CreateHook(ptr, trampoline_wglSwapBuffers, reinterpret_cast<void**>(&o_wglSwapBuffers)) != MH_OK)
+		{
+			std::cout << "MH_Initialize: failed \n";
+		}
+		
+		if (MH_EnableHook(ptr) != MH_OK)
+		{
+			std::cout << "MH_EnableHook: failed \n";
+		}
+	}
+
+	return 1;
 }
+//==========================================================================================================================
+
 
 HHOOK hook; // handle to the hook
 MSG msg; // struct with information about all messages in our queue
@@ -305,10 +253,10 @@ LRESULT WINAPI MouseCallback(int nCode, WPARAM wParam, LPARAM lParam) {
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 
 	RECT windowPos;
-	GetClientRect(hwnd, (LPRECT)&windowPos);
-	ClientToScreen(hwnd, (LPPOINT)&windowPos.left);
-	ClientToScreen(hwnd, (LPPOINT)&windowPos.right);
-	windowPos.top -= FindExtraWindowHeight(hwnd);
+	GetClientRect(hwnd_game, (LPRECT)&windowPos);
+	ClientToScreen(hwnd_game, (LPPOINT)&windowPos.left);
+	ClientToScreen(hwnd_game, (LPPOINT)&windowPos.right);
+	windowPos.top -= FindExtraWindowHeight(hwnd_game);
 
 	if (nCode == 0)  // we have information in wParam/lParam ? If yes, let's check it:
 	{
@@ -357,77 +305,71 @@ void hookMouse()
 static unsigned long __stdcall CheatMain( void *arg ) {
 	Beep( 500, 350 );
 	
-
 	AllocConsole();
 	ShowWindow(GetConsoleWindow(), SW_MINIMIZE);
 	_iobuf *data;
 	freopen_s( &data, "CONIN$", "r", stdin );
 	freopen_s( &data, "CONOUT$", "w", stdout );
 	SetConsoleTitleA( "IM NOT FUCKING CHEATING" );
+	std::this_thread::sleep_for(std::chrono::milliseconds(4000));
 
-	const auto base = reinterpret_cast< uintptr_t >( GetModuleHandleA( nullptr ) );
-	if( !base )
+	//hwnd_game = GetForegroundWindow(); //TODO: get by name to get the precise window and not the focussed one, to avoid mistakes.
+	hwnd_game = FindWindowA(NULL, "Devil Daggers");
+	std::cout << "Game Process\n";
+	std::cout << "	HWND: " << hwnd_game << "\n";
+
+	LPSTR windowText = new CHAR[MAX_PATH];
+	GetWindowTextA(hwnd_game, windowText, MAX_PATH);
+	std::cout << "	Title: " << windowText << "\n";
+
+	const auto baseAddress = reinterpret_cast<uintptr_t>( GetModuleHandleA( nullptr ) );
+	if( !baseAddress )
 		return 1;
-	std::cout << "Game base address: 0x" << std::hex << std::uppercase << base << "\n";
+	std::cout << "Game base address: 0x" << std::hex << std::uppercase << baseAddress << "\n";
 
-	const auto player_addr = base + 0x1F30C0;
+	const auto player_addr = *(DWORD_PTR*)(baseAddress + 0x226BD0) + 0x18C;
 	std::cout << "CPlayer address 0x" << std::hex << std::uppercase << player_addr << "\n\n";
 
+	//WTF? no idea of what was this supposed to do in v1 hack, maybe cursor lock/unlock? no idea.
 	// dd.exe+4C067 - 01 06 - add [esi],eax
 	// dd.exe+4C074 - 8B 01 - mov eax,[ecx]
 	// dd.exe+4C084 - 89 01 - mov [ecx],eax
-	NOP( (PVOID)( base + 0x4C067 ), 2 );
-	NOP( (PVOID)( base + 0x4C074 ), 2 );
-	NOP( (PVOID)( base + 0x4C084 ), 2 );
+	//NOP( (PVOID)( base + 0x4C067 ), 2 );
+	//NOP( (PVOID)( base + 0x4C074 ), 2 );
+	//NOP( (PVOID)( base + 0x4C084 ), 2 );
 
-	player = *reinterpret_cast< CPlayer ** >( player_addr );
+	player = reinterpret_cast< CPlayer * >( player_addr );
 	
 	hookOpenGL();
 	hookMouse();
 
-	while( true ) 
+	std::cout << std::hex << (&player) << std::endl;
+
+	while(true)
 	{
+		if (!imguiInitialized)
+			continue;
+
 		//handle mouse events
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
+
 		}
 
 		if (!player)
 			continue;
-		std::cout << " player->bAlive: " << player->bAlive 
-		          << " player->iGems: " << player->iGems
-		          << " player->fTimer: " << player->fTimer 
-		          << " player->iEnemiesCounter: " << player->iEnemiesCounter 
-			<< "\r";
 
 		if (changeLevel)
 		{
 			changeLevel = false;
 			//strcpy(player->sGameMode, textInputBuffer_level);
-			strcpy(player->sGameMode, "SECRET");
+			strcpy_s(player->sGameMode, "SECRET");
 		}
 		else
 		{
-			strcpy(textInputBuffer_level, player->sGameMode);
-		}
-
-		if (triggerFreecam)
-		{
-			triggerFreecam = false;
-			bFreecam = !bFreecam;
-			if (bFreecam)
-			{
-				NOP((PVOID)(base + 0x1A075), 3);
-			}
-			else
-			{
-				for (unsigned int i = 0; i < sizeof(originalFreecam) / sizeof(originalFreecam[0]); i = i + 1)
-				{
-					write((PVOID)(base + 0x1A075 + i), originalFreecam[i], 1);
-				}
-			}
+			strcpy_s(textInputBuffer_level, player->sGameMode);
 		}
 
 		cache_gems = player->iGems;

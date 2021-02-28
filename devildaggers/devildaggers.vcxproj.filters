@@ -10,9 +10,6 @@
     <ClCompile Include="imgui_draw.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="imgui_impl_glfw.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
     <ClCompile Include="imgui_impl_opengl3.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
@@ -22,24 +19,13 @@
     <ClCompile Include="imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="mem.cpp">
-      <Filter>guidedhacking</Filter>
-    </ClCompile>
-    <ClCompile Include="glDraw.cpp">
-      <Filter>guidedhacking</Filter>
-    </ClCompile>
-    <ClCompile Include="gltext.cpp">
-      <Filter>guidedhacking</Filter>
-    </ClCompile>
+    <ClCompile Include="GameModel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="imgui.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui_impl_glfw.h">
       <Filter>imgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui_impl_opengl3.h">
@@ -50,9 +36,6 @@
     </ClInclude>
     <ClInclude Include="imgui_internal.h">
       <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="mem.h">
-      <Filter>guidedhacking</Filter>
     </ClInclude>
     <ClInclude Include="imstb_truetype.h">
       <Filter>imgui</Filter>
@@ -66,19 +49,10 @@
     <ClInclude Include="imstb_textedit.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="glDraw.h">
-      <Filter>guidedhacking</Filter>
-    </ClInclude>
-    <ClInclude Include="gltext.h">
-      <Filter>guidedhacking</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="imgui">
       <UniqueIdentifier>{c7e0c431-ccf7-49f7-b4e5-4c6641ffa2a5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="guidedhacking">
-      <UniqueIdentifier>{b8eb3cc8-6e5f-4470-b1e1-131a45ef6997}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
