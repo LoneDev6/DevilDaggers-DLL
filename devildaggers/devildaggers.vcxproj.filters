@@ -20,6 +20,8 @@
       <Filter>imgui</Filter>
     </ClCompile>
     <ClCompile Include="GameModel.cpp" />
+    <ClCompile Include="Memory.cpp" />
+    <ClCompile Include="OpenGLHook.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -49,6 +51,7 @@
     <ClInclude Include="imstb_textedit.h">
       <Filter>imgui</Filter>
     </ClInclude>
+    <ClInclude Include="OpenGLHook.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="imgui">

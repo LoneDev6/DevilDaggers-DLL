@@ -5,37 +5,41 @@
 
 #include "Vector3.h"
 
+//v3.1
 class CPlayer {
 public:
-	char pad_0000[96]; //0x0000
-	char sPlayerName_idk[4]; //0x0060
-	char pad_0064[92]; //0x0064
-	char sVersion_idk[4]; //0x00C0
-	char pad_00C4[24]; //0x00C4
-	char sGameMode2_blankSometimes[4]; //0x00DC
-	char pad_00E0[108]; //0x00E0
-	int32_t iFOV; //0x014C
-	char pad_0150[64]; //0x0150
+	char pad_0000[36]; //0x0000
+	char sPlayerName[1]; //0x0024
+	char pad_0025[119]; //0x0025
+	char sVersion[1+4]; //0x009C
+	char pad_009D[39-4]; //0x009D
+	char sLevelName[1+15]; //0x00C4
+	char pad_00C5[203-15]; //0x00C5
 	float fTimer; //0x0190
 	char pad_0194[16]; //0x0194
 	bool bAlive; //0x01A4
-	char pad_01A5[27]; //0x01A5
-	int32_t iGems; //0x01C0
-	char pad_01C4[56]; //0x01C4
-	int32_t iEnemiesCounter; //0x01FC
-	char pad_0200[36]; //0x0200
-	char sGameMode[5]; //0x0224
-	char pad_0229[308]; //0x0229
-	int8_t N000002E8; //0x035D
-	bool bReplayMode; //0x035E
-	char pad_035F[230]; //0x035F
-	char cPlayerName[8]; //0x0445
-	char pad_044D[264]; //0x044D
-	Vector3 vCamera; //0x0555
-	char pad_0561[748]; //0x0561
-}; //Size: 0x084D
+	char pad_01A5[31]; //0x01A5
+	uint32_t iGems; //0x01C4
+	char pad_01C8[140]; //0x01C8
+	char sLevelName_2[1+15]; //0x0254
+	char pad_0255[383-15]; //0x0255
+	char sPlayerName_2[1]; //0x03D4
+	char pad_03D5[343]; //0x03D5
+	char sPlayerName_3[1]; //0x052C
+	char pad_052D[275]; //0x052D
+	float N00000190; //0x0640
+	char pad_0644[4]; //0x0644
+	float N00000195; //0x0648
+	float N00000193; //0x064C
+	char pad_0650[16]; //0x0650
+	float fCamX; //0x0660
+	float fCamY; //0x0664
+	float fCamZ; //0x0668
+	char pad_066C[484]; //0x066C
+}; //Size: 0x0850
 
 
+//v1 (probably also v3.0)
 /*public:
 	char pad_0000[400]; //0x0000
 	float m_unk_timer; //0x0190
