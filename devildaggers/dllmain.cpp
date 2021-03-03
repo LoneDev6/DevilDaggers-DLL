@@ -45,7 +45,7 @@ bool imguiInitialized = false;
 bool imguiInitializedPos = false;
 bool imguiInitDecollapsedHeaders = false;
 
-CPlayer *player;
+Hero *hero;
 int cache_enemiesCounter = 0;
 char textInputBuffer_level[32] = "";
 float set_sky_light_value = 0;
@@ -166,41 +166,43 @@ void render_loop(HDC hdc)
 		if (ImGui::CollapsingHeader("Status"))
 		{
 			ImGui::Text("FPS: %f", io.Framerate); //TODO: get it from the game not from IMGUI
-			ImGui::Text("Gems: %d", player->iGems);
-			ImGui::Text("Score: %f", player->fSeconds);
-			ImGui::Text("Killed Enemies: %d", player->iKilledEnemies);
+			ImGui::Text("Gems: %d", hero->iGems);
+			ImGui::Text("Score: %f", hero->fSeconds);
+			ImGui::Text("Tiles-shrink time: %f", hero->fTilesShrinkTime);
+			ImGui::Text("Killed enemies: %d", hero->iKilledEnemies);
 			//ImGui::Text("Enemies: %d", cache_enemiesCounter); //TODO: i have to find the address
-			ImGui::Checkbox("Alive", &player->bAlive);
+			ImGui::Checkbox("Alive", &hero->bAlive);
 			//ImGui::InputText("Level", textInputBuffer_level, 20, ImGuiInputTextFlags_EnterReturnsTrue);
 		}
 		
 		if (ImGui::CollapsingHeader("World"))
 		{
-			ImGui::Text("Scene: %s", player->sLevelName);
-			ImGui::Text("Entities: %d", player->iCounterEnemiesAndSpawners);
-			ImGui::Text("SKULL1: %d", player->iCounter_skull_1_HUGE_PEAK_BUG);
+			ImGui::Text("Scene: %s", hero->sLevelName);
+			ImGui::Text("Entities: %d", hero->iCounterEnemiesAndSpawners);
+			ImGui::Text("SKULL1: %d", hero->iCounter_skull_1_HUGE_PEAK_BUG);
 		}
 
 		if (ImGui::CollapsingHeader("Camera"))
 		{
-			ImGui::Text("X: %f", player->fCamX);
-			ImGui::Text("Y: %f", player->fCamY);
-			ImGui::Text("Z: %f", player->fCamZ);
+			ImGui::Text("X: %f", hero->fCamX);
+			ImGui::Text("Y: %f", hero->fCamY);
+			ImGui::Text("Z: %f", hero->fCamZ);
 			ImGui::Checkbox("Crosshair", &enabled_crosshair);
-			ImGui::Checkbox("Top-down", &player->bTopDownCamera);
+			ImGui::Checkbox("Top-down", &hero->bTopDownCamera);
 			ImGui::SliderFloat("Sky light", &set_sky_light_value, 0, 500);
+			//TODO: add a check to "auto apply" light on world change
 			//TODO: freecam
 		}
 
 		if (ImGui::CollapsingHeader("Other"))
 		{
 			//not working
-			//ImGui::Text("1st in leaderboard: %s", player->sLeaderboardFirstUsername);
+			//ImGui::Text("1st in leaderboard: %s", hero->sLeaderboardFirstUsername);
 			ImGui::Checkbox("log_keyboard", &LOG_KEYBOARD);
-			ImGui::Text("DD Version: %s", player->sGameVersion);
+			ImGui::Text("DD Version: %s", hero->sGameVersion);
 
 			//ImGui::PushItemWidth(20); //seems to bug the mouse input
-			//ImGui::InputText("DD Version", player->sGameVersion, 6, ImGuiInputTextFlags_ReadOnly);
+			//ImGui::InputText("DD Version", hero->sGameVersion, 6, ImGuiInputTextFlags_ReadOnly);
 		} 
 
 		if (!imguiInitDecollapsedHeaders)
@@ -281,13 +283,13 @@ static unsigned long __stdcall CheatMain( void *arg ) {
 		return 1;
 	std::cout << "Base address: 0x" << std::hex << std::uppercase << baseAddress << "\n";
 
-	//const auto player_addr = *(DWORD_PTR*)(baseAddress + PLAYER_PTR_ADDRESS);
-	//std::cout << "CPlayer address 0x" << std::hex << std::uppercase << player_addr << "\n\n";
-	//player = reinterpret_cast<CPlayer*>(player_addr);
+	//const auto hero_addr = *(DWORD_PTR*)(baseAddress + HERO_PTR_ADDRESS);
+	//std::cout << "hero address 0x" << std::hex << std::uppercase << hero_addr << "\n\n";
+	//hero = reinterpret_cast<hero*>(hero_addr);
 
-	const auto player_addr = baseAddress + PLAYER_PTR_ADDRESS;
-	std::cout << "CPlayer address 0x" << std::hex << std::uppercase << player_addr << "\n\n";
-	player = CPlayer::init(player_addr);
+	const auto hero_addr = baseAddress + HERO_PTR_ADDRESS;
+	std::cout << "Hero address 0x" << std::hex << std::uppercase << hero_addr << "\n\n";
+	hero = Hero::init(hero_addr);
 
 
 	//WTF? no idea of what was this supposed to do in v1 hack, maybe fix for freecam lag, no idea.
@@ -310,27 +312,27 @@ static unsigned long __stdcall CheatMain( void *arg ) {
 		handle_mouse_events();
 		handle_keyboard_events(LOG_KEYBOARD);
 
-		if (!player)
+		if (!hero)
 			continue;
 
 		if (set_sky_light_value != 0)
 		{
-			player->fSkyLight = set_sky_light_value;
+			hero->fSkyLight = set_sky_light_value;
 		}
 
 
 		/*if (changeLevel)
 		{
 			changeLevel = false;
-			//strcpy(player->sGameMode, textInputBuffer_level);
-			strcpy_s(player->sLevelName, "SECRET");
+			//strcpy(hero->sGameMode, textInputBuffer_level);
+			strcpy_s(hero->sLevelName, "SECRET");
 		}
 		else
 		{
-			strcpy_s(textInputBuffer_level, player->sLevelName);
+			strcpy_s(textInputBuffer_level, hero->sLevelName);
 		}*/
 
-		//cache_enemiesCounter = player->iEnemiesCounter; //TODO: not working (seems now changes while shooting???)
+		//cache_enemiesCounter = hero->iEnemiesCounter; //TODO: not working (seems now changes while shooting???)
 
 		//std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) );
 	}
