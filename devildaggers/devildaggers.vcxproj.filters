@@ -19,9 +19,9 @@
     <ClCompile Include="imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="GameModel.cpp" />
     <ClCompile Include="Memory.cpp" />
     <ClCompile Include="OpenGLHook.cpp" />
+    <ClCompile Include="GameModel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />

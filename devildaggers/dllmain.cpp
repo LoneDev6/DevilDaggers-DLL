@@ -1,8 +1,7 @@
 #pragma once
 
-//IMPORTANT: if OpenGL32.Lib is missing get it from C:\Program Files\Microsoft SDKs\Windows\v6.1\Lib\x64
-
 #define OPEN_CLOSE_KEY VK_INSERT
+bool LOG_KEYBOARD = false;
 
 
 #include <windows.h>
@@ -16,6 +15,7 @@
 #include <stdio.h>
 
 #include "imgui.h"
+//IMPORTANT: if OpenGL32.Lib is missing get it from C:\Program Files\Microsoft SDKs\Windows\v6.1\Lib\x64
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_win32.h"
 
@@ -25,7 +25,7 @@
 #include "OpenGLHook.h"
 #include "Memory.h"
 #include "Vector3.h"
-#include "GameModel.cpp"
+#include "GameModel.h"
 
 #include "dllmain.h"
 
@@ -40,8 +40,6 @@ HWND hwnd_game;
 
 bool menu_opened = true;
 
-bool log_keyboard = true;
-
 bool glewFailedToInitialize = false;
 bool imguiInitialized = false;
 bool imguiInitializedPos = false;
@@ -50,9 +48,10 @@ bool imguiInitDecollapsedHeaders = false;
 CPlayer *player;
 int cache_enemiesCounter = 0;
 char textInputBuffer_level[32] = "";
+float set_sky_light_value = 0;
 //bool changeLevel = false;
-
 bool enabled_crosshair = false;
+
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -105,6 +104,8 @@ void render_loop(HDC hdc)
 
 		io.DeltaTime = 1.0f / io.Framerate;
 
+		io.FontGlobalScale = 0.9f;
+
 		io.WantCaptureKeyboard = true;
 		io.WantCaptureMouse = true;
 
@@ -156,8 +157,8 @@ void render_loop(HDC hdc)
 #pragma region RenderStuff
 	if (ImGui::Begin("FuckTheDevil"))
 	{
-		ImGui::SetWindowPos(ImVec2(0, 100), ImGuiCond_Once);
-		ImGui::SetWindowSize(ImVec2(200, 450), ImGuiCond_Once);
+		ImGui::SetWindowPos(ImVec2(150, 150), ImGuiCond_Once);
+		ImGui::SetWindowSize(ImVec2(230, 500), ImGuiCond_Once);
 
 		//ImGui::CaptureMouseFromApp(true);
 		//ImGui::CaptureKeyboardFromApp(true);
@@ -166,10 +167,18 @@ void render_loop(HDC hdc)
 		{
 			ImGui::Text("FPS: %f", io.Framerate); //TODO: get it from the game not from IMGUI
 			ImGui::Text("Gems: %d", player->iGems);
-			ImGui::Text("Score: %f", player->fTimer);
+			ImGui::Text("Score: %f", player->fSeconds);
+			ImGui::Text("Killed Enemies: %d", player->iKilledEnemies);
 			//ImGui::Text("Enemies: %d", cache_enemiesCounter); //TODO: i have to find the address
 			ImGui::Checkbox("Alive", &player->bAlive);
 			//ImGui::InputText("Level", textInputBuffer_level, 20, ImGuiInputTextFlags_EnterReturnsTrue);
+		}
+		
+		if (ImGui::CollapsingHeader("World"))
+		{
+			ImGui::Text("Scene: %s", player->sLevelName);
+			ImGui::Text("Entities: %d", player->iCounterEnemiesAndSpawners);
+			ImGui::Text("SKULL1: %d", player->iCounter_skull_1_HUGE_PEAK_BUG);
 		}
 
 		if (ImGui::CollapsingHeader("Camera"))
@@ -178,22 +187,27 @@ void render_loop(HDC hdc)
 			ImGui::Text("Y: %f", player->fCamY);
 			ImGui::Text("Z: %f", player->fCamZ);
 			ImGui::Checkbox("Crosshair", &enabled_crosshair);
+			ImGui::Checkbox("Top-down", &player->bTopDownCamera);
+			ImGui::SliderFloat("Sky light", &set_sky_light_value, 0, 500);
 			//TODO: freecam
 		}
 
 		if (ImGui::CollapsingHeader("Other"))
 		{
-			ImGui::Checkbox("log_keyboard", &log_keyboard);
+			//not working
+			//ImGui::Text("1st in leaderboard: %s", player->sLeaderboardFirstUsername);
+			ImGui::Checkbox("log_keyboard", &LOG_KEYBOARD);
+			ImGui::Text("DD Version: %s", player->sGameVersion);
+
 			//ImGui::PushItemWidth(20); //seems to bug the mouse input
-			//ImGui::InputText("DD Version", player->sVersion, 6, ImGuiInputTextFlags_ReadOnly);
-			ImGui::Text("DD Version");
-			ImGui::Text(player->sVersion);
+			//ImGui::InputText("DD Version", player->sGameVersion, 6, ImGuiInputTextFlags_ReadOnly);
 		} 
 
 		if (!imguiInitDecollapsedHeaders)
 		{
 			imguiInitDecollapsedHeaders = true;
 			ImGui::GetStateStorage()->SetInt(ImGui::GetID("Status"), 1);
+			ImGui::GetStateStorage()->SetInt(ImGui::GetID("World"), 1);
 			ImGui::GetStateStorage()->SetInt(ImGui::GetID("Camera"), 1);
 			ImGui::GetStateStorage()->SetInt(ImGui::GetID("Other"), 1);
 		}
@@ -202,6 +216,8 @@ void render_loop(HDC hdc)
 	{
 		std::cout << "ImGui error rendering stuff..." << "\n";
 	}
+
+	//TODO: find a way to unlock the cursor on demand (to interact with the menu ingame)
 
 	//show cursor
 	//ImGui::GetIO().MouseDrawCursor = true;
@@ -265,10 +281,14 @@ static unsigned long __stdcall CheatMain( void *arg ) {
 		return 1;
 	std::cout << "Base address: 0x" << std::hex << std::uppercase << baseAddress << "\n";
 
-	const auto player_addr = *(DWORD_PTR*)(baseAddress + 0x226BD0) + 0x18C;
-	std::cout << "CPlayer address 0x" << std::hex << std::uppercase << player_addr << "\n\n";
+	//const auto player_addr = *(DWORD_PTR*)(baseAddress + PLAYER_PTR_ADDRESS);
+	//std::cout << "CPlayer address 0x" << std::hex << std::uppercase << player_addr << "\n\n";
+	//player = reinterpret_cast<CPlayer*>(player_addr);
 
-	player = reinterpret_cast<CPlayer*>(player_addr);
+	const auto player_addr = baseAddress + PLAYER_PTR_ADDRESS;
+	std::cout << "CPlayer address 0x" << std::hex << std::uppercase << player_addr << "\n\n";
+	player = CPlayer::init(player_addr);
+
 
 	//WTF? no idea of what was this supposed to do in v1 hack, maybe fix for freecam lag, no idea.
 	// dd.exe+4C067 - 01 06 - add [esi],eax
@@ -288,10 +308,16 @@ static unsigned long __stdcall CheatMain( void *arg ) {
 			continue;
 
 		handle_mouse_events();
-		handle_keyboard_events(log_keyboard);
+		handle_keyboard_events(LOG_KEYBOARD);
 
 		if (!player)
 			continue;
+
+		if (set_sky_light_value != 0)
+		{
+			player->fSkyLight = set_sky_light_value;
+		}
+
 
 		/*if (changeLevel)
 		{
