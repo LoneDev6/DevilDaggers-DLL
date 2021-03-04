@@ -19,9 +19,10 @@ Working on DD v3.1
 
 ## Screenshots
 
-##### Injector configuration
+#### Injector configuration
 [![](https://i.imgur.com/BX4C69Z.png)](https://i.imgur.com/BX4C69Z.png)
 
-##### Showcase
+
+#### Showcase
 
 [![video](https://i.imgur.com/X1oUi79.png)](https://www.youtube.com/watch?v=yD3jnzyw4o8)
