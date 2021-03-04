@@ -6,8 +6,6 @@
 #include <windows.h>
 #include <iostream>
 
-#include "Vector3.h"
-
 template <class T>
 class GameDataStructure
 {
