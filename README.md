@@ -1,7 +1,7 @@
 # DevilDaggers-DLL
 
-# Currently 3.1 support is in progress. 
-([working version for ddv1.0](https://github.com/LoneDev6/DevilDaggers-DLL/tree/dd-v1.0))
+- ([Version for ddv3.1](https://github.com/LoneDev6/DevilDaggers-DLL/tree/dd-v3.1))
+- ([Version for ddv1.0](https://github.com/LoneDev6/DevilDaggers-DLL/tree/dd-v1.0))
 
 DevilDaggers reverse engineering project (purpose is not cheating).
 Working on DD v3.1
@@ -22,7 +22,6 @@ Working on DD v3.1
 ##### Injector configuration
 [![](https://i.imgur.com/BX4C69Z.png)](https://i.imgur.com/BX4C69Z.png)
 
-##### Other screenshots
-[![](https://i.imgur.com/YahNi50.png)](https://i.imgur.com/YahNi50.png)
+##### Showcase
 
-[![](https://i.imgur.com/ck630xv.png)](https://i.imgur.com/ck630xv.png)
+[![video](https://i.imgur.com/X1oUi79.png)](https://www.youtube.com/watch?v=yD3jnzyw4o8)
