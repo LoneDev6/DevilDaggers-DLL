@@ -1,7 +1,6 @@
 # DevilDaggers-DLL
 
-- ([Version for ddv3.1](https://github.com/LoneDev6/DevilDaggers-DLL/tree/dd-v3.1))
-- ([Version for ddv1.0](https://github.com/LoneDev6/DevilDaggers-DLL/tree/dd-v1.0))
+- ([Version for ddv3.1](https://github.com/LoneDev6/DevilDaggers-DLL/releases/tag/dd-3.1-v0.1))
 
 DevilDaggers reverse engineering project (purpose is not cheating).
 Working on DD v3.1
