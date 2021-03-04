@@ -7,15 +7,18 @@ DevilDaggers reverse engineering project (purpose is not cheating).
 Working on DD v3.1
 - injectable DLL
 - uses IMGUI
+- crosshair
+- top-down view in any scene
 - FPS indicator
+- time indicator
 - gems counter
-- score
-- enemies counter
+- killed enemies counter
+- entities counter
 - FOV changer
-- Freecam (experimental)
-- Alive/dead switcher
-- level changer
-- allows to shoot in the main menu
+- alive/dead switcher
+- scene name
+- camera coords
+- light editor
 
 ## Screenshots
 
