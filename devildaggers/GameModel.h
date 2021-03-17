@@ -1,6 +1,6 @@
 #pragma once
 
-#define HERO_PTR_ADDRESS 0x228978;
+#define HERO_PTR_ADDRESS 0x227BE0;
 
 
 #include <windows.h>
@@ -57,25 +57,21 @@ public:
 	float fTilesShrinkTime; //0x03BC
 	char pad_03C0[32]; //0x03C0
 	char sLevelName_2[8]; //0x03E0
-	char pad_03E8[152]; //0x03E8
+	char pad_03E8[128]; //0x03E8
+	int8_t iRenderParticlesEditor; //0x0468
+	int8_t iRenderLevelEditor; //0x0469
+	int8_t iRenderLevelDesc_notWorking; //0x046A
+	char pad_046B[21]; //0x046B
 	char sLeaderboardFirstUsername[32]; //0x0480
 	char sLeaderboardSecondUsername[32]; //0x04A0
 	class unk_leaderboardEntry *pLeaderboardStuff; //0x04C0
-	char pad_04C8[40]; //0x04C8
-	class unk_leaderboardEntry_2 *pLeaderboardStuff_2; //0x04F0
-	char pad_04F8[104]; //0x04F8
-	char sPlayerName4[8]; //0x0560
-	char pad_0568[40]; //0x0568
-	class DownloadMessage *pDownloadMessage; //0x0590
-	char pad_0598[288]; //0x0598
-	char sPlayerName5[8]; //0x06B8
-	char pad_06C0[24]; //0x06C0
-	class SteamStuff *pSteamStuff; //0x06D8
-	char pad_06E0[268]; //0x06E0
+	char pad_04C8[804]; //0x04C8
 	float fCamX; //0x07EC
 	float fCamY; //0x07F0
 	float fCamZ; //0x07F4
-}; //Size: 0x07F8
+	char pad_07F8[112]; //0x07F8
+}; //Size: 0x0868
+
 
 class unk_leaderboardEntry_2
 {

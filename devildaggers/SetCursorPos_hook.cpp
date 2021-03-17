@@ -10,6 +10,8 @@
 setCursorPos _o_setCursorPos;
 std::function<void(int&, int&)> _proxy_setCursorPos;
 
+void* SetCursorPos_addr;
+
 BOOL __stdcall _trampoline__setCursorPos(_In_ int X, _In_ int Y)
 {
 	_proxy_setCursorPos(X, Y);
@@ -25,18 +27,27 @@ DWORD WINAPI hook_setCursorPos(std::function<void(int&, int&)> proxy)
 	{
 		std::cout << "Found user32.dll \n";
 		//use GetProcAddress to find address of setCursorPos in the dll
-		void* ptr = GetProcAddress(hMod, "SetCursorPos");
+		SetCursorPos_addr = GetProcAddress(hMod, "SetCursorPos");
 		MH_Initialize();
-		if (MH_CreateHook(ptr, _trampoline__setCursorPos, reinterpret_cast<void**>(&_o_setCursorPos)) != MH_OK)
+		if (MH_CreateHook(SetCursorPos_addr, _trampoline__setCursorPos, reinterpret_cast<void**>(&_o_setCursorPos)) != MH_OK)
 		{
 			std::cout << "MH_Initialize: failed \n";
 		}
 
-		if (MH_EnableHook(ptr) != MH_OK)
+		if (MH_EnableHook(SetCursorPos_addr) != MH_OK)
 		{
 			std::cout << "MH_EnableHook: failed \n";
 		}
 	}
 
 	return 1;
+}
+
+void unhook_setCursorPos()
+{
+	if (MH_DisableHook(SetCursorPos_addr) != MH_OK)
+	{
+		std::cout << "MH_DisableHook: failed \n";
+		//maybe handle it somehow?
+	}
 }

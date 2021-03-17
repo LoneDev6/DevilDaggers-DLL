@@ -5,6 +5,11 @@ VisualStudioVersion = 15.0.28306.52
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "devildaggers", "devildaggers\devildaggers.vcxproj", "{EA2E9B4F-EDCF-45A2-976C-477296653824}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "injector", "injector\injector.vcxproj", "{31C2ECAE-CB2A-4F7D-88C4-FB3D581F1853}"
+	ProjectSection(ProjectDependencies) = postProject
+		{EA2E9B4F-EDCF-45A2-976C-477296653824} = {EA2E9B4F-EDCF-45A2-976C-477296653824}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +26,12 @@ Global
 		{EA2E9B4F-EDCF-45A2-976C-477296653824}.Release|x64.Build.0 = Release|x64
 		{EA2E9B4F-EDCF-45A2-976C-477296653824}.Release|x86.ActiveCfg = Release|Win32
 		{EA2E9B4F-EDCF-45A2-976C-477296653824}.Release|x86.Build.0 = Release|Win32
+		{31C2ECAE-CB2A-4F7D-88C4-FB3D581F1853}.Debug|x64.ActiveCfg = Debug|x64
+		{31C2ECAE-CB2A-4F7D-88C4-FB3D581F1853}.Debug|x64.Build.0 = Debug|x64
+		{31C2ECAE-CB2A-4F7D-88C4-FB3D581F1853}.Debug|x86.ActiveCfg = Debug|x64
+		{31C2ECAE-CB2A-4F7D-88C4-FB3D581F1853}.Release|x64.ActiveCfg = Release|x64
+		{31C2ECAE-CB2A-4F7D-88C4-FB3D581F1853}.Release|x64.Build.0 = Release|x64
+		{31C2ECAE-CB2A-4F7D-88C4-FB3D581F1853}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

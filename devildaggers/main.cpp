@@ -48,8 +48,12 @@ bool LOG_KEYBOARD = false;
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-HWND hwnd_game;
+HMODULE hModule;
 
+HWND hwnd_game;
+intptr_t baseAddress;
+
+bool main_loop_enabled = true;
 bool menu_opened = true;
 
 bool glfwFailedToInitialize = false;
@@ -61,8 +65,15 @@ Hero *hero;
 int cache_enemiesCounter = 0;
 char textInputBuffer_level[32] = "";
 bool enabled_crosshair = false;
+bool force_show_cursor = false;
 
-unsigned long __stdcall main_thread(void *arg) {
+void save_dll_module(const HMODULE self)
+{
+	hModule = self;
+}
+
+unsigned long __stdcall main_thread(void *arg)
+{
 	Beep(500, 350);
 
 	AllocConsole();
@@ -81,7 +92,7 @@ unsigned long __stdcall main_thread(void *arg) {
 	GetWindowTextA(hwnd_game, windowText, MAX_PATH);
 	std::cout << "	Title: " << windowText << "\n";
 
-	const auto baseAddress = reinterpret_cast<uintptr_t>(GetModuleHandleA(nullptr));
+	baseAddress = reinterpret_cast<uintptr_t>(GetModuleHandleA(nullptr));
 	if (!baseAddress)
 		return 1;
 	std::cout << "Base address: 0x" << std::hex << std::uppercase << baseAddress << "\n";
@@ -96,7 +107,7 @@ unsigned long __stdcall main_thread(void *arg) {
 	hook_keyboard(hwnd_game);
 
 	//main loop
-	while (true)
+	while (main_loop_enabled)
 	{
 		if (!imguiInitialized)
 			continue;
@@ -106,9 +117,14 @@ unsigned long __stdcall main_thread(void *arg) {
 
 		if (!hero)
 			continue;
-
-		//std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) );
 	}
+
+	unhook_opengl();
+	unhook_setCursorPos();
+
+	FreeConsole();
+	FreeLibraryAndExitThread(hModule, 0);
+	//TODO: detach also glew32.dll
 
 	return 0;
 }
@@ -118,12 +134,14 @@ void setCursorPos_proxy(int &x, int &y)
 	ImGuiIO& io = ImGui::GetIO();
 	if (!ImGui::IsKeyDown(UNLOCK_CURSOR_KEY))
 	{
-		ImGui::GetIO().MouseDrawCursor = false;
+		if(!force_show_cursor)
+			ImGui::GetIO().MouseDrawCursor = false;
 		return;
 	}
 
 	//show cursor
-	ImGui::GetIO().MouseDrawCursor = true;
+	if (!force_show_cursor)
+		ImGui::GetIO().MouseDrawCursor = true;
 	
 	//unlock cursor
 	POINT cursor;
@@ -198,10 +216,6 @@ void render_loop_proxy(HDC hdc)
 
 	hero->bTopDownCamera = io.KeysDown[TOP_DOWN_VIEW_KEY];
 
-	if (!menu_opened)
-		return;
-
-
 	//update display size based on game window (when user changes from fullscreen to window or if resizes window)
 	RECT rect;
 	if (GetWindowRect(hwnd_game, &rect))
@@ -216,73 +230,109 @@ void render_loop_proxy(HDC hdc)
 	ImGui_ImplWin32_NewFrame();
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui::NewFrame();
+#pragma region RenderStuff
 
 #pragma region MenuEntries
-	if (ImGui::Begin(IMGUI_TITLE))
+	if (menu_opened)
 	{
-		ImGui::SetWindowPos(ImVec2(250, 150), ImGuiCond_Once);
-		ImGui::SetWindowSize(ImVec2(260, 660), ImGuiCond_Once);
-
-		//ImGui::CaptureMouseFromApp(true);
-		//ImGui::CaptureKeyboardFromApp(true);
-		ImGui::Text("DD Version: %s", hero->sGameVersion);
-		if (ImGui::CollapsingHeader("Status"))
+		if (ImGui::Begin(IMGUI_TITLE))
 		{
-			ImGui::Text("FPS: %f", io.Framerate); //TODO: get it from the game not from IMGUI
-			ImGui::Text("Gems: %d", hero->iGems);
-			ImGui::Text("Score: %f", hero->fSeconds);
-			ImGui::Text("Tiles-shrink time: %f", hero->fTilesShrinkTime);
-			ImGui::Text("Killed enemies: %d", hero->iKilledEnemies);
-			//ImGui::Text("Enemies: %d", cache_enemiesCounter); //TODO: i have to find the address
-			ImGui::Checkbox("Alive", &hero->bAlive);
-			//ImGui::InputText("Level", textInputBuffer_level, 20, ImGuiInputTextFlags_EnterReturnsTrue);
+			ImGui::SetWindowPos(ImVec2(250, 150), ImGuiCond_Once);
+			ImGui::SetWindowSize(ImVec2(280, 660), ImGuiCond_Once);
+
+			//ImGui::CaptureMouseFromApp(true);
+			//ImGui::CaptureKeyboardFromApp(true);
+			ImGui::Text("DD Version: %s", hero->sGameVersion);
+			if (ImGui::CollapsingHeader("Status"))
+			{
+				ImGui::Text("FPS: %f", io.Framerate); //TODO: get it from the game not from IMGUI
+				ImGui::Text("Gems: %d", hero->iGems);
+				ImGui::Text("Score: %f", hero->fSeconds);
+				ImGui::Text("Tiles-shrink time: %f", hero->fTilesShrinkTime);
+				ImGui::Text("Killed enemies: %d", hero->iKilledEnemies);
+				//ImGui::Text("Enemies: %d", cache_enemiesCounter); //TODO: i have to find the address
+				ImGui::Checkbox("Alive", &hero->bAlive);
+				//ImGui::InputText("Level", textInputBuffer_level, 20, ImGuiInputTextFlags_EnterReturnsTrue);
+			}
+
+			if (ImGui::CollapsingHeader("World"))
+			{
+				ImGui::Text("Scene: %s", hero->sLevelName);
+				ImGui::Text("Entities: %d", hero->iCounterEnemiesAndSpawners);
+				ImGui::Text("SKULL1: %d", hero->iCounter_skull_1_HUGE_PEAK_BUG);
+			}
+
+			if (ImGui::CollapsingHeader("Camera"))
+			{
+				ImGui::Text("X: %f", hero->fCamX);
+				ImGui::Text("Y: %f", hero->fCamY);
+				ImGui::Text("Z: %f", hero->fCamZ);
+				ImGui::Checkbox("Force show cursor", &force_show_cursor);
+				ImGui::Checkbox("Crosshair", &enabled_crosshair);
+				ImGui::Checkbox("Top-down", &hero->bTopDownCamera);
+				ImGui::SliderFloat("Sky light", &hero->fSkyLight, 0, 500);
+				//TODO: add a check to "auto apply" light on world change
+				//TODO: freecam
+			}
+
+			
+			if (ImGui::CollapsingHeader("Editor"))
+			{
+				if (std::strcmp(hero->sLevelName, "menu") != 0 && std::strcmp(hero->sLevelName, "") != 0)
+				{
+					ImGui::Text("Unlock+show cursor: hold %s", UNLOCK_CURSOR_KEY_STR);
+					ImGui::Text("Move camera: hold middle click");
+					if (ImGui::Button("Particles Editor"))
+					{
+						hero->iRenderParticlesEditor = 1;
+					}
+					if (ImGui::Button("Level Editor"))
+					{
+						//fix no cursor bug (shitty way of dealing with that)
+						hero->iRenderParticlesEditor = 256;
+						hero->iRenderLevelEditor = 1;
+					}
+					if (ImGui::Button("Exit Editors"))
+					{
+						hero->iRenderParticlesEditor = 0;
+						hero->iRenderLevelEditor = 0;
+					}
+				}
+				else
+				{
+					ImGui::Text("Not available in the menu.");
+					ImGui::Text("Press PLAY");
+				}
+			}
+			
+			if (ImGui::CollapsingHeader("Info"))
+			{
+				ImGui::Text("Open/close menu: %s", OPEN_CLOSE_KEY_STR);
+				ImGui::Text("Unlock+show cursor: hold %s", UNLOCK_CURSOR_KEY_STR);
+				ImGui::Text("Top-down view: hold %s", TOP_DOWN_VIEW_KEY_STR);
+				ImGui::Text("Coded by github.com/LoneDev6", OPEN_CLOSE_KEY_STR);
+				if (ImGui::Button("CLICK TO EJECT"))
+				{
+					main_loop_enabled = false;
+				}
+				ImGui::Checkbox("log_keyboard", &LOG_KEYBOARD);
+				//ImGui::PushItemWidth(20); //seems to bug the mouse input
+			}
+
+			if (!imguiInitDecollapsedHeaders)
+			{
+				imguiInitDecollapsedHeaders = true;
+				ImGui::GetStateStorage()->SetInt(ImGui::GetID("Status"), 1);
+				ImGui::GetStateStorage()->SetInt(ImGui::GetID("World"), 1);
+			}
 		}
-
-		if (ImGui::CollapsingHeader("World"))
+		else
 		{
-			ImGui::Text("Scene: %s", hero->sLevelName);
-			ImGui::Text("Entities: %d", hero->iCounterEnemiesAndSpawners);
-			ImGui::Text("SKULL1: %d", hero->iCounter_skull_1_HUGE_PEAK_BUG);
-		}
-
-		if (ImGui::CollapsingHeader("Camera"))
-		{
-			ImGui::Text("X: %f", hero->fCamX);
-			ImGui::Text("Y: %f", hero->fCamY);
-			ImGui::Text("Z: %f", hero->fCamZ);
-			ImGui::Checkbox("Crosshair", &enabled_crosshair);
-			ImGui::Checkbox("Top-down", &hero->bTopDownCamera);
-			ImGui::SliderFloat("Sky light", &hero->fSkyLight, 0, 500);
-			//TODO: add a check to "auto apply" light on world change
-			//TODO: freecam
-		}
-
-		if (ImGui::CollapsingHeader("Info"))
-		{
-			//not working
-			//ImGui::Text("1st in leaderboard: %s", hero->sLeaderboardFirstUsername);
-			ImGui::Text("Open/close menu: %s", OPEN_CLOSE_KEY_STR);
-			ImGui::Text("Unlock cursor: hold %s", UNLOCK_CURSOR_KEY_STR);
-			ImGui::Text("Top-down view: hold %s", TOP_DOWN_VIEW_KEY_STR);
-			ImGui::Checkbox("log_keyboard", &LOG_KEYBOARD);
-			ImGui::Text("Coded by github.com/LoneDev6", OPEN_CLOSE_KEY_STR);
-			//ImGui::PushItemWidth(20); //seems to bug the mouse input
-			//ImGui::InputText("DD Version", hero->sGameVersion, 6, ImGuiInputTextFlags_ReadOnly);
-		}
-
-		if (!imguiInitDecollapsedHeaders)
-		{
-			imguiInitDecollapsedHeaders = true;
-			ImGui::GetStateStorage()->SetInt(ImGui::GetID("Status"), 1);
-			ImGui::GetStateStorage()->SetInt(ImGui::GetID("World"), 1);
-			ImGui::GetStateStorage()->SetInt(ImGui::GetID("Camera"), 1);
-			ImGui::GetStateStorage()->SetInt(ImGui::GetID("Info"), 1);
+			std::cout << "ImGui error rendering stuff..." << "\n";
 		}
 	}
-	else
-	{
-		std::cout << "ImGui error rendering stuff..." << "\n";
-	}
+
+#pragma endregion
 
 	if (enabled_crosshair && !hero->bTopDownCamera)
 	{
@@ -303,6 +353,11 @@ void render_loop_proxy(HDC hdc)
 			*new ImVec2(io.DisplaySize.x / 2 + size + xOffset, io.DisplaySize.y / 2 - size + yOffset),
 			0xFF0000FF
 		);
+	}
+
+	if (force_show_cursor)
+	{
+		ImGui::GetIO().MouseDrawCursor = true;
 	}
 
 	ImGui::End();

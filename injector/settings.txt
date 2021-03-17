@@ -1,0 +1,5 @@
+### Exe name:
+dd.exe
+### DLLs to inject (in order)
+glew32.dll
+devildaggers.dll

@@ -10,6 +10,8 @@
 wglSwapBuffers _o_wglSwapBuffers;
 std::function<void(HDC)> _proxy_wglSwapBuffers;
 
+void* wglSwapBuffers_addr;
+
 BOOL __stdcall _trampoline_wglSwapBuffers(_In_ HDC  hdc)
 {
 	_proxy_wglSwapBuffers(hdc);
@@ -25,14 +27,14 @@ DWORD WINAPI hook_opengl(std::function<void(HDC)> proxy)
 	{
 		std::cout << "Found opengl32.dll \n";
 		//use GetProcAddress to find address of wglSwapBuffers in the dll
-		void* ptr = GetProcAddress(hMod, "wglSwapBuffers");
+		wglSwapBuffers_addr = GetProcAddress(hMod, "wglSwapBuffers");
 		MH_Initialize();
-		if (MH_CreateHook(ptr, _trampoline_wglSwapBuffers, reinterpret_cast<void**>(&_o_wglSwapBuffers)) != MH_OK)
+		if (MH_CreateHook(wglSwapBuffers_addr, _trampoline_wglSwapBuffers, reinterpret_cast<void**>(&_o_wglSwapBuffers)) != MH_OK)
 		{
 			std::cout << "MH_Initialize: failed \n";
 		}
 
-		if (MH_EnableHook(ptr) != MH_OK)
+		if (MH_EnableHook(wglSwapBuffers_addr) != MH_OK)
 		{
 			std::cout << "MH_EnableHook: failed \n";
 		}
@@ -40,4 +42,12 @@ DWORD WINAPI hook_opengl(std::function<void(HDC)> proxy)
 
 	return 1;
 }
-//TODO: unhookOpenGL()
+
+void unhook_opengl()
+{
+	if (MH_DisableHook(wglSwapBuffers_addr) != MH_OK)
+	{
+		std::cout << "MH_DisableHook: failed \n";
+		//maybe handle it somehow?
+	}
+}
