@@ -7,10 +7,10 @@
 
 DevilDaggers reverse engineering project (purpose is not cheating).
 Working on DD v3.1
-- injectable DLL
-- uses IMGUI
 - crosshair
 - top-down view in any scene
+- ingame particles and levels editor
+- illumination settings
 - FPS indicator
 - time indicator
 - gems counter
@@ -20,7 +20,6 @@ Working on DD v3.1
 - alive/dead switcher
 - scene name
 - camera coords
-- light editor
 
 # Screenshots
 
