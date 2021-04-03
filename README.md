@@ -1,7 +1,7 @@
 # DevilDaggers-DLL
 
 # How to install
-- Download ([Version for ddv3.1](https://github.com/LoneDev6/DevilDaggers-DLL/releases/tag/dd-3.1-v0.1))
+- Download ([Version for ddv3.1](https://github.com/LoneDev6/DevilDaggers-DLL/releases/latest))
 - Execute injector.exe
 - Run the game
 
